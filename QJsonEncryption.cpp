@@ -40,11 +40,10 @@ bool QJsonEncryption::encryptJson(QJsonObject &inputJson, QJsonObject &outputJso
 
         }
     }
-    outputJson["server_publickey"] = QString(getPublickey().toUtf8().toBase64());
     return success;
 }
 
-bool QJsonEncryption::decryptJson(QJsonObject &inputJson, QJsonObject &outputJson)
+bool QJsonEncryption::decryptJson(QJsonObject &inputJson, QJsonObject &outputJson, const char * serverPrivateKey)
 {
     bool success = true;
     for(QString key: inputJson.keys()) {
@@ -59,7 +58,7 @@ bool QJsonEncryption::decryptJson(QJsonObject &inputJson, QJsonObject &outputJso
                 key == "limit") {
             QString value = inputJson.value(key).toString();
             QString decryptedValue;
-            if(this->decryptString(value,decryptedValue)) {
+            if(this->decryptString(value,decryptedValue,serverPrivateKey)) {
                 outputJson[key] = decryptedValue;
             } else {
                 success = false;
@@ -72,55 +71,9 @@ bool QJsonEncryption::decryptJson(QJsonObject &inputJson, QJsonObject &outputJso
     return success;
 }
 
-QString &QJsonEncryption::getPublickey()
-{
-    return m_publicKey;
-}
-
 QJsonEncryption::QJsonEncryption(QObject *parent) : QObject(parent)
 {
-    m_publicKey = QString();
-    m_privateKey = QString();
 
-    loadPublicKey(m_publicKey);
-    loadPrivateKey(m_privateKey);
-    if(!m_publicKey.isEmpty()) {
-        LOGD << "Load public key successful: " << m_publicKey;
-    } else {
-        LOGD << "Load public key failed";
-    }
-
-    if(!m_privateKey.isEmpty()) {
-        LOGD << "Load private key successful: " << m_privateKey;
-    } else {
-        LOGD << "Load private key failed";
-    }
-}
-
-void QJsonEncryption::loadPublicKey(QString& publicKey)
-{
-    QFile pubFile(PUBLICKEY_PATH);
-    if (pubFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QByteArray content = pubFile.readAll();
-        if(!content.isNull() && !content.isEmpty()) {
-            publicKey = QString(content);
-        }
-    } else {
-        LOGD << "Open " << PUBLICKEY_PATH << " failed";
-    }
-}
-
-void QJsonEncryption::loadPrivateKey(QString& privateKey)
-{
-    QFile priFile(PRIVATEKEY_PATH);
-    if (priFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QByteArray content = priFile.readAll();
-        if(!content.isNull() && !content.isEmpty()) {
-            privateKey = QString(content);
-        }
-    } else {
-        LOGD << "Open " << PRIVATEKEY_PATH << " failed";
-    }
 }
 
 bool QJsonEncryption::encryptString(QString &inputString, QString &outputString, const char *clientPubkey)
@@ -143,14 +96,14 @@ bool QJsonEncryption::encryptString(QString &inputString, QString &outputString,
     return success;
 }
 
-bool QJsonEncryption::decryptString(QString &inputString, QString &outputString)
+bool QJsonEncryption::decryptString(QString &inputString, QString &outputString, const char * serverPrivateKey)
 {
     bool success = false;
 
     CkRsa rsaDecryptor;
 
     rsaDecryptor.put_EncodingMode("base64");
-    success = rsaDecryptor.ImportPrivateKey(m_privateKey.toUtf8().data());
+    success = rsaDecryptor.ImportPrivateKey(serverPrivateKey);
 
     bool usePrivateKey = true;
     const char *decryptedStr = rsaDecryptor.decryptStringENC(inputString.toUtf8().data(),usePrivateKey);

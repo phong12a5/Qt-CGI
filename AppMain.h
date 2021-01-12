@@ -10,7 +10,16 @@ public:
     explicit AppMain(QObject *parent = nullptr);
     void handleRequest();
 
-signals:
+    QString& getPublickey();
+    QString& getPrivatekey();
+
+private:
+    void loadPublicKey(QString& publicKey);
+    void loadPrivateKey(QString& privateKey);
+
+private:
+    QString m_publicKey;
+    QString m_privateKey;
 
 public slots:
 };
