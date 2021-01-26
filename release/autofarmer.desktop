@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Autofarmer CGI
+Comment=Phong's APP
+Exec=autofarmer.api
+Icon=autofarmer
+Categories=Office;
