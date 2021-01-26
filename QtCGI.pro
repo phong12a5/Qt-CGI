@@ -6,13 +6,13 @@ CONFIG   -= app_bundle
 TEMPLATE  = app
 SOURCES  += main.cpp \
     QtCGI.cpp \
-    QJsonEncryption.cpp \
+    QEncryption.cpp \
     AppMain.cpp
 
 HEADERS += \
     QtCGI.h \
     AppDefine.h \
-    QJsonEncryption.h \
+    QEncryption.h \
     AppMain.h
 
 

@@ -1,21 +1,21 @@
-#include "QJsonEncryption.h"
+#include "QEncryption.h"
 #include <QFile>
 #include <AppDefine.h>
 #include <CkRsa.h>
 #include <QJsonObject>
 #include <QJsonDocument>
 
-QJsonEncryption* QJsonEncryption::s_instance = nullptr;
+QEncryption* QEncryption::s_instance = nullptr;
 
-QJsonEncryption *QJsonEncryption::instance()
+QEncryption *QEncryption::instance()
 {
     if(s_instance == nullptr) {
-        s_instance = new QJsonEncryption(nullptr);
+        s_instance = new QEncryption(nullptr);
     }
     return s_instance;
 }
 
-bool QJsonEncryption::encryptJson(QJsonObject &inputJson, QJsonObject &outputJson, const char *clientPubkey)
+bool QEncryption::encryptJson(QJsonObject &inputJson, QJsonObject &outputJson, const char *clientPubkey)
 {
     bool success = true;
     for(QString key: inputJson.keys()) {
@@ -43,7 +43,7 @@ bool QJsonEncryption::encryptJson(QJsonObject &inputJson, QJsonObject &outputJso
     return success;
 }
 
-bool QJsonEncryption::decryptJson(QJsonObject &inputJson, QJsonObject &outputJson, const char * serverPrivateKey)
+bool QEncryption::decryptJson(QJsonObject &inputJson, QJsonObject &outputJson, const char * serverPrivateKey)
 {
     bool success = true;
     for(QString key: inputJson.keys()) {
@@ -71,12 +71,12 @@ bool QJsonEncryption::decryptJson(QJsonObject &inputJson, QJsonObject &outputJso
     return success;
 }
 
-QJsonEncryption::QJsonEncryption(QObject *parent) : QObject(parent)
+QEncryption::QEncryption(QObject *parent) : QObject(parent)
 {
 
 }
 
-bool QJsonEncryption::encryptString(QString &inputString, QString &outputString, const char *clientPubkey)
+bool QEncryption::encryptString(QString &inputString, QString &outputString, const char *clientPubkey)
 {
     bool success = false;
     CkRsa rsaEncryptor;
@@ -96,7 +96,7 @@ bool QJsonEncryption::encryptString(QString &inputString, QString &outputString,
     return success;
 }
 
-bool QJsonEncryption::decryptString(QString &inputString, QString &outputString, const char * serverPrivateKey)
+bool QEncryption::decryptString(QString &inputString, QString &outputString, const char * serverPrivateKey)
 {
     bool success = false;
 

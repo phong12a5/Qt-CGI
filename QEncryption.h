@@ -1,13 +1,13 @@
-#ifndef QJSONENCRYPTION_H
-#define QJSONENCRYPTION_H
+#ifndef QEncryption_H
+#define QEncryption_H
 
 #include <QObject>
 
-class QJsonEncryption : public QObject
+class QEncryption : public QObject
 {
     Q_OBJECT
 public:
-    static QJsonEncryption* instance();
+    static QEncryption* instance();
     bool encryptJson(QJsonObject& inputJsonPath, QJsonObject& outputJsonPath, const char * clientPubkey);
     bool decryptJson(QJsonObject& inputJsonPath, QJsonObject& outputJsonPath, const char * serverPrivateKey);
 
@@ -16,10 +16,10 @@ public:
     bool decryptString(QString& inputString, QString& outputString, const char * serverPrivateKey);
 
 private:
-    explicit QJsonEncryption(QObject *parent = nullptr);
+    explicit QEncryption(QObject *parent = nullptr);
 
 private:
-    static QJsonEncryption* s_instance;
+    static QEncryption* s_instance;
 };
 
-#endif // QJSONENCRYPTION_H
+#endif // QEncryption_H
