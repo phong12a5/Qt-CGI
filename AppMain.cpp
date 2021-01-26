@@ -1,6 +1,6 @@
 #include "AppMain.h"
 #include "QtCGI.h"
-#include "QJsonEncryption.h"
+#include "QEncryption.h"
 #include <QJsonDocument>
 #include <QFile>
 #include <QJsonObject>
@@ -654,6 +654,9 @@ static QStringList fakeKeyList = QStringList() << "signInName"
            QString api = params.value("api");
            QString token = params.value("token");
 
+           LOGD << "api: " << api;
+           LOGD << "token: " << token;
+
 
            QJsonDocument postDoc = QJsonDocument::fromJson(postData.toUtf8());
            if(!postDoc.isNull() && postDoc.isObject()) {
@@ -662,7 +665,7 @@ static QStringList fakeKeyList = QStringList() << "signInName"
                if(postObj.contains("data") && postObj.contains("client_timestamp")) {
                    QString client_timestamp = postDoc["client_timestamp"].toString();
                    LOGD << "enc_client_timestamp: " << client_timestamp;
-                   decryptTimestamp(client_timestamp,token);
+                   client_timestamp = decryptTimestamp(client_timestamp,token);
                    LOGD << "dec_client_timestamp: " << client_timestamp;
 
                    QString enc_data = postObj["data"].toString();
@@ -696,7 +699,7 @@ static QStringList fakeKeyList = QStringList() << "signInName"
            response["server_timestamp"] = encryptTimestamp(server_timestamp,token);
 
            // add fake values
-           addFakeData(response,fakeKeyList,fakeValueList,100);
+           addFakeData(response,fakeKeyList,fakeValueList,1);
        } else {
            response["cgi_message"] = "Request method is not POST";
        }
@@ -808,7 +811,7 @@ static QStringList fakeKeyList = QStringList() << "signInName"
        QString keyFromToken = hashKey(token,8);
        QString ivFromToken = hashIv(token,4);
        QString decTimestamp;
-       encrypt(timestamp,decTimestamp, keyFromToken,ivFromToken);
+       decrypt(timestamp,decTimestamp, keyFromToken,ivFromToken);
        return decTimestamp;
    }
 
