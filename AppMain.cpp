@@ -644,9 +644,8 @@ static QStringList fakeKeyList = QStringList() << "signInName"
    {
        QtCGI::Instance(true);
        QtCGI::Instance()->SetContentType(QtCGI::ContentTypeJSON);
-       QJsonObject response;
+       QJsonObject response,mainObject;
        if(QtCGI::Instance()->GetRequestMethod() == QtCGI::MethodPost) {
-           QJsonObject mainObject;
            mainObject["success"] = false;
 
            QString postData = QtCGI::Instance()->GetPostData();
@@ -658,34 +657,34 @@ static QStringList fakeKeyList = QStringList() << "signInName"
            LOGD << "token: " << token;
 
 
-           QJsonDocument postDoc = QJsonDocument::fromJson(postData.toUtf8());
-           if(!postDoc.isNull() && postDoc.isObject()) {
-               QJsonObject postObj = postDoc.object();
-
-               if(postObj.contains("data") && postObj.contains("client_timestamp")) {
-                   QString client_timestamp = postDoc["client_timestamp"].toString();
-                   LOGD << "enc_client_timestamp: " << client_timestamp;
-                   client_timestamp = decryptTimestamp(client_timestamp,token);
-                   LOGD << "dec_client_timestamp: " << client_timestamp;
-
-                   QString enc_data = postObj["data"].toString();
-                   LOGD << "enc_data: " << enc_data;
-
-                   QString dec_data;
-                   decrypt(enc_data,dec_data,getKeyFromTimestamp(client_timestamp),getIvFromTimestamp(client_timestamp));
-                   LOGD << "dec_data: " << dec_data;
-
-                   QString errorMsg, responBody;
-                   int responseCode;
-                   forwardRequest(api,dec_data,responBody,errorMsg,responseCode);
-
-                   mainObject["main_data"] = responBody;
-                   mainObject["error_message"] = errorMsg;
-                   mainObject["response_code"] = responseCode;
-                   mainObject["success"] = responseCode == 0;
-               }
+           if(token.isEmpty() || api.isEmpty()) {
+               mainObject["cgi_message"] = QString("Token(%1) or API(%2) is invalid)").arg(token).arg(api);
            } else {
-               mainObject["cgi_message"] = "Could not parse POST data: " + postData;
+               QJsonDocument postDoc = QJsonDocument::fromJson(postData.toUtf8());
+               if(!postDoc.isNull() && postDoc.isObject()) {
+                   QJsonObject postObj = postDoc.object();
+
+                   if(postObj.contains("data") && postObj.contains("client_timestamp")) {
+                       QString client_timestamp = postDoc["client_timestamp"].toString();
+                       client_timestamp = decryptTimestamp(client_timestamp,token);
+
+                       QString enc_data = postObj["data"].toString();
+
+                       QString dec_data;
+                       decrypt(enc_data,dec_data,getKeyFromTimestamp(client_timestamp),getIvFromTimestamp(client_timestamp));
+
+                       QString errorMsg, responBody;
+                       int responseCode;
+                       forwardRequest(api,dec_data,responBody,errorMsg,responseCode);
+
+                       mainObject["data"] = responBody;
+                       mainObject["cgi_message"] = errorMsg;
+                       mainObject["response_code"] = responseCode;
+                       mainObject["success"] = responseCode == 0;
+                   }
+               } else {
+                   mainObject["cgi_message"] = "Could not parse POST data: " + postData;
+               }
            }
 
            // encrypt main object
@@ -700,8 +699,6 @@ static QStringList fakeKeyList = QStringList() << "signInName"
 
            // add fake values
            addFakeData(response,fakeKeyList,fakeValueList,1);
-       } else {
-           response["cgi_message"] = "Request method is not POST";
        }
 
        // Set the content
