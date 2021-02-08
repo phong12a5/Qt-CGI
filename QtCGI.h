@@ -464,6 +464,13 @@ class QtCGI : public QObject
 		 */
 		static QString HeaderServerSoftware;
 
+        /**
+         * @paragraph This property contains the mobile-secret-key header name
+         * @brief QtCGI::HeaderServerSoftware
+         * @var QString
+         */
+        static QString HeaderMobileSecretkey;
+
 		/**
 		 * @paragraph This property contains the DELETE data request method name
 		 * @brief QtCGI::MethodDelete

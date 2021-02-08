@@ -671,7 +671,7 @@ static QStringList fakeKeyList = QStringList() << "signInName"
                        QString enc_data = postObj["data"].toString();
 
                        QString dec_data;
-                       decrypt(enc_data,dec_data,getKeyFromTimestamp(client_timestamp),getIvFromTimestamp(client_timestamp));
+                       QEncryption::decrypt(enc_data,dec_data,getKeyFromTimestamp(client_timestamp),getIvFromTimestamp(client_timestamp));
 
                        QString errorMsg, responBody;
                        int responseCode;
@@ -691,7 +691,7 @@ static QStringList fakeKeyList = QStringList() << "signInName"
            QString server_timestamp = getCurrentTime();
            QString mainObjStr, encMainObjStr;
            mainObjStr = QJsonDocument(mainObject).toJson(QJsonDocument::Compact);
-           encrypt(mainObjStr,encMainObjStr,getKeyFromTimestamp(server_timestamp),getIvFromTimestamp(server_timestamp));
+           QEncryption::encrypt(mainObjStr,encMainObjStr,getKeyFromTimestamp(server_timestamp),getIvFromTimestamp(server_timestamp));
            response["data"] = encMainObjStr;
 
            // encrypt server timestamp
@@ -714,6 +714,8 @@ static QStringList fakeKeyList = QStringList() << "signInName"
        CkHttp http;
        http.put_ConnectTimeout(30);
        http.put_ReadTimeout(30);
+       LOGD << "mobile-secret-key: " <<  QtCGI::Instance()->GetRequestHeader(QtCGI::HeaderMobileSecretkey);
+       http.SetRequestHeader("mobile-secret-key", QtCGI::Instance()->GetRequestHeader(QtCGI::HeaderMobileSecretkey).toLower().toUtf8().data());
        http.SetRequestHeader("Content-Type", "application/json");
 
        QString url = "https://api8.autofarmer.xyz/public-api/v1/mobiles/" + api;
@@ -742,73 +744,20 @@ static QStringList fakeKeyList = QStringList() << "signInName"
        return QString(buffer);
    }
 
-   QString AppMain::hashKey(QString& input, int blockSize) {
-       QString result;
-       if(input.length() >= blockSize &&  32 % blockSize == 0) {
-           for(int i = 0; i < 32/blockSize; i++) {
-               if(i + blockSize < input.length()) {
-                   result += input.mid(i,blockSize);
-               } else {
-                   result += input.mid(input.length() - blockSize,blockSize);
-               }
-           }
-       }
-       return result;
-   }
-
-   QString AppMain::hashIv(QString& input, int blockSize) {
-       QString result;
-       if(input.length() >= blockSize &&  16 % blockSize == 0) {
-           for(int i = 0; i < 16/blockSize; i++) {
-               if(i + blockSize < input.length()) {
-                   result += input.mid(i,blockSize);
-               } else {
-                   result += input.mid(input.length() - blockSize,blockSize);
-               }
-           }
-       }
-       return result;
-   }
-
-
-
-   void AppMain::encrypt(QString& input, QString& output, QString key, QString iv) {
-       CkCrypt2 crypt;
-       crypt.put_CryptAlgorithm("aes");
-       crypt.put_CipherMode("cbc");
-       crypt.put_KeyLength(256);
-       crypt.put_PaddingScheme(0);
-       crypt.put_EncodingMode("base64");
-       crypt.SetEncodedIV(iv.toUtf8().data(), "ascii");
-       crypt.SetEncodedKey(key.toUtf8().data(), "ascii");
-       output = QString(crypt.encryptStringENC(input.toUtf8().data()));
-   }
-
-   void AppMain::decrypt(QString& input, QString& output, QString key, QString iv) {
-       CkCrypt2 crypt;
-       crypt.put_CryptAlgorithm("aes");
-       crypt.put_CipherMode("cbc");
-       crypt.put_KeyLength(256);
-       crypt.put_PaddingScheme(0);
-       crypt.put_EncodingMode("base64");
-       crypt.SetEncodedIV(iv.toUtf8().data(), "ascii");
-       crypt.SetEncodedKey(key.toUtf8().data(), "ascii");
-       output = QString(crypt.decryptStringENC(input.toUtf8().data()));
-   }
 
    QString AppMain::encryptTimestamp(QString& timestamp, QString& token) {
-       QString keyFromToken = hashKey(token,8);
-       QString ivFromToken = hashIv(token,4);
+       QString keyFromToken = QEncryption::hashKey(token,8);
+       QString ivFromToken = QEncryption::hashIv(token,4);
        QString encTimestamp;
-       encrypt(timestamp,encTimestamp, keyFromToken,ivFromToken);
+       QEncryption::encrypt(timestamp,encTimestamp, keyFromToken,ivFromToken);
        return encTimestamp;
    }
 
    QString AppMain::decryptTimestamp(QString& timestamp, QString& token) {
-       QString keyFromToken = hashKey(token,8);
-       QString ivFromToken = hashIv(token,4);
+       QString keyFromToken = QEncryption::hashKey(token,8);
+       QString ivFromToken = QEncryption::hashIv(token,4);
        QString decTimestamp;
-       decrypt(timestamp,decTimestamp, keyFromToken,ivFromToken);
+       QEncryption::decrypt(timestamp,decTimestamp, keyFromToken,ivFromToken);
        return decTimestamp;
    }
 
@@ -840,7 +789,7 @@ static QStringList fakeKeyList = QStringList() << "signInName"
 
                QString encKey = getKeyFromTimestamp(getCurrentTime());
                static QString tmpiv = "phongdeptrai_phongvandeptrai_01071994";
-               encrypt(value, value, encKey, tmpiv.left(16));
+               QEncryption::encrypt(value, value, encKey, tmpiv.left(16));
                object[key] = value;
            }
        }

@@ -60,6 +60,7 @@ QString QtCGI::HeaderServerPort          = "SERVER_PORT";
 QString QtCGI::HeaderServerProtocol      = "SERVER_PROTOCOL";
 QString QtCGI::HeaderServerSignature     = "SERVER_SIGNATURE";
 QString QtCGI::HeaderServerSoftware      = "SERVER_SOFTWARE";
+QString QtCGI::HeaderMobileSecretkey     = "HTTP_MOBILE_SECRET_KEY";
 QString QtCGI::MethodDelete              = "DELETE";
 QString QtCGI::MethodGet                 = "GET";
 QString QtCGI::MethodHead                = "HEAD";
@@ -200,8 +201,9 @@ QtCGI* QtCGI::ProcessHeaders()
 	// Add the SERVER_SIGNATURE header
 	this->mRequestHeaders.insert(QtCGI::HeaderServerSignature,     QString(qgetenv(QtCGI::HeaderServerSignature.toLatin1().data())));
 	// Add the SERVER_SOFTWARE header
-	this->mRequestHeaders.insert(QtCGI::HeaderServerSoftware,      QString(qgetenv(QtCGI::HeaderServerSoftware.toLatin1().data())));
-	// Return the instance
+    this->mRequestHeaders.insert(QtCGI::HeaderMobileSecretkey,     QString(qgetenv(QtCGI::HeaderMobileSecretkey.toLatin1().data())));
+    // Add the HeaderMobileSecretkey header
+    // Return the instance
 	return this;
 }
 

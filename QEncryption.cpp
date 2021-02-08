@@ -4,6 +4,7 @@
 #include <CkRsa.h>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <CkCrypt2.h>
 
 QEncryption* QEncryption::s_instance = nullptr;
 
@@ -15,98 +16,62 @@ QEncryption *QEncryption::instance()
     return s_instance;
 }
 
-bool QEncryption::encryptJson(QJsonObject &inputJson, QJsonObject &outputJson, const char *clientPubkey)
-{
-    bool success = true;
-    for(QString key: inputJson.keys()) {
-        if(key == "appname" ||
-                key == "info" ||
-                key == "data" ||
-                key == "uid" ||
-                key == "email" ||
-                key == "country" ||
-                key == "action" ||
-                key == "secretkey" ||
-                key == "limit") {
-            QString value = inputJson.value(key).toString();
-            QString encryptedValue;
-            if(this->encryptString(value,encryptedValue,clientPubkey)) {
-                outputJson[key] = encryptedValue;
-            } else {
-                success = false;
-            }
-                // Do encrypt
-        } else {
-
-        }
-    }
-    return success;
-}
-
-bool QEncryption::decryptJson(QJsonObject &inputJson, QJsonObject &outputJson, const char * serverPrivateKey)
-{
-    bool success = true;
-    for(QString key: inputJson.keys()) {
-        if(key == "appname" ||
-                key == "info" ||
-                key == "data" ||
-                key == "uid" ||
-                key == "email" ||
-                key == "country" ||
-                key == "action" ||
-                key == "secretkey" ||
-                key == "limit") {
-            QString value = inputJson.value(key).toString();
-            QString decryptedValue;
-            if(this->decryptString(value,decryptedValue,serverPrivateKey)) {
-                outputJson[key] = decryptedValue;
-            } else {
-                success = false;
-            }
-                // Do encrypt
-        } else {
-
-        }
-    }
-    return success;
-}
-
 QEncryption::QEncryption(QObject *parent) : QObject(parent)
 {
 
 }
 
-bool QEncryption::encryptString(QString &inputString, QString &outputString, const char *clientPubkey)
-{
-    bool success = false;
-    CkRsa rsaEncryptor;
-
-    // Encrypted output is always binary.  In this case, we want
-    // to encode the encrypted bytes in a printable string.
-    // Our choices are "hex", "base64", "url", "quoted-printable".
-    rsaEncryptor.put_EncodingMode("base64");
-
-    // We'll encrypt with the public key and decrypt with the private
-    // key.  It's also possible to do the reverse.
-    success = rsaEncryptor.ImportPublicKey(clientPubkey);
-
-    bool usePrivateKey = false;
-    const char *encryptedStr = rsaEncryptor.encryptStringENC(inputString.toUtf8().data(),usePrivateKey);
-    outputString = QString(encryptedStr);
-    return success;
+QString QEncryption::hashKey(QString& input, int blockSize) {
+    QString result;
+    if(input.length() >= blockSize &&  32 % blockSize == 0) {
+        for(int i = 0; i < 32/blockSize; i++) {
+            if(i + blockSize < input.length()) {
+                result += input.mid(i,blockSize);
+            } else {
+                result += input.mid(input.length() - blockSize,blockSize);
+            }
+        }
+    }
+    return result;
 }
 
-bool QEncryption::decryptString(QString &inputString, QString &outputString, const char * serverPrivateKey)
-{
-    bool success = false;
-
-    CkRsa rsaDecryptor;
-
-    rsaDecryptor.put_EncodingMode("base64");
-    success = rsaDecryptor.ImportPrivateKey(serverPrivateKey);
-
-    bool usePrivateKey = true;
-    const char *decryptedStr = rsaDecryptor.decryptStringENC(inputString.toUtf8().data(),usePrivateKey);
-    outputString = QString(decryptedStr);
-    return success;
+QString QEncryption::hashIv(QString& input, int blockSize) {
+    QString result;
+    if(input.length() >= blockSize &&  16 % blockSize == 0) {
+        for(int i = 0; i < 16/blockSize; i++) {
+            if(i + blockSize < input.length()) {
+                result += input.mid(i,blockSize);
+            } else {
+                result += input.mid(input.length() - blockSize,blockSize);
+            }
+        }
+    }
+    return result;
 }
+
+
+
+void QEncryption::encrypt(QString &input, QString &output, QString key, QString iv, QString encodeMode) {
+    CkCrypt2 crypt;
+    crypt.put_CryptAlgorithm("aes");
+    crypt.put_CipherMode("cbc");
+    crypt.put_KeyLength(256);
+    crypt.put_PaddingScheme(0);
+    crypt.put_EncodingMode(encodeMode.toUtf8().data());
+    crypt.SetEncodedIV(iv.toUtf8().data(), "ascii");
+    crypt.SetEncodedKey(key.toUtf8().data(), "ascii");
+    output = QString(crypt.encryptStringENC(input.toUtf8().data()));
+}
+
+void QEncryption::decrypt(QString& input, QString& output, QString key, QString iv, QString encodeMode) {
+    CkCrypt2 crypt;
+    crypt.put_CryptAlgorithm("aes");
+    crypt.put_CipherMode("cbc");
+    crypt.put_KeyLength(256);
+    crypt.put_PaddingScheme(0);
+    crypt.put_EncodingMode(encodeMode.toUtf8().data());
+    crypt.SetEncodedIV(iv.toUtf8().data(), "ascii");
+    crypt.SetEncodedKey(key.toUtf8().data(), "ascii");
+    output = QString(crypt.decryptStringENC(input.toUtf8().data()));
+}
+

@@ -8,12 +8,12 @@ class QEncryption : public QObject
     Q_OBJECT
 public:
     static QEncryption* instance();
-    bool encryptJson(QJsonObject& inputJsonPath, QJsonObject& outputJsonPath, const char * clientPubkey);
-    bool decryptJson(QJsonObject& inputJsonPath, QJsonObject& outputJsonPath, const char * serverPrivateKey);
 
+    static void encrypt(QString& input, QString& output, QString key, QString iv, QString encodeMode = "base64");
+    static void decrypt(QString& input, QString& output, QString key, QString iv, QString encodeMode = "base64");
 
-    bool encryptString(QString& inputString, QString& outputString, const char * clientPubkey);
-    bool decryptString(QString& inputString, QString& outputString, const char * serverPrivateKey);
+    static QString hashKey(QString& input, int blockSize);
+    static QString hashIv(QString& input, int blockSize);
 
 private:
     explicit QEncryption(QObject *parent = nullptr);
