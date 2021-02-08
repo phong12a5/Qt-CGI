@@ -15,6 +15,8 @@ public:
     static QString hashKey(QString& input, int blockSize);
     static QString hashIv(QString& input, int blockSize);
 
+    static QString md5(QString input);
+
 private:
     explicit QEncryption(QObject *parent = nullptr);
 

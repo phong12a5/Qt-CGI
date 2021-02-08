@@ -49,6 +49,14 @@ QString QEncryption::hashIv(QString& input, int blockSize) {
     return result;
 }
 
+QString QEncryption::md5(QString input)
+{
+    CkCrypt2 crypt;
+    crypt.put_EncodingMode("hex");
+    crypt.put_HashAlgorithm("md5");
+    return QString(crypt.hashStringENC(input.toUtf8().data()));
+}
+
 
 
 void QEncryption::encrypt(QString &input, QString &output, QString key, QString iv, QString encodeMode) {
