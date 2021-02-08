@@ -673,24 +673,46 @@ void AppMain::handleRequest()
                     QString dec_data;
                     QEncryption::decrypt(enc_data,dec_data,getKeyFromTimestamp(client_timestamp),getIvFromTimestamp(client_timestamp));
 
-                    //Convert request string to request json
+                    // Encode password && secretkey
                     QJsonDocument requestJsonDoc = QJsonDocument::fromJson(dec_data.toUtf8());
                     QString action;
                     if(requestJsonDoc.isObject()) {
                         QJsonObject requestJsonObj = requestJsonDoc.object();
+
                         if(requestJsonObj.contains("action")) {
+                            // Get action type
                             action = requestJsonObj.value("action").toString();
+                            LOGD << "action: " << action;
+                        }
+
+                        if(action == "UpdatePassword" || action == "UpdateSecretkey") {
+                            if(requestJsonObj.contains("clone_info")) {
+                                QString base64Data = requestJsonObj.value("clone_info").toString();
+                                QString rawData = QString::fromUtf8(QByteArray::fromBase64(base64Data.toUtf8()));
+                                QJsonObject cloneInfo = QJsonDocument::fromJson(rawData.toUtf8()).object();
+                                if(cloneInfo.contains("cz")) {
+                                    bool cz = cloneInfo.value("cz").toBool();
+                                    if(!cz) {
+                                        // Encode password && secretkey from CGI
+                                        encryptCloneInfo(cloneInfo,token);
+                                        rawData = QString(QJsonDocument(cloneInfo).toJson());
+                                        base64Data = rawData.toUtf8().toBase64();
+                                        requestJsonObj["clone_info"] =  base64Data;
+                                        dec_data =  QString(QJsonDocument(requestJsonObj).toJson());
+                                    }
+                                }
+                            }
                         }
                     }
 
-                    LOGD << "action: " << action;
 
+                    // Forward request
                     QString errorMsg, responBody;
                     int responseCode;
                     forwardRequest(api,dec_data,responBody,errorMsg,responseCode);
 
+                    // Decode password && secretkey
                     if(action == "GetClone" || action == "GetCloneInfo") {
-                        // Decode password && secretkey
                         QJsonDocument responseJsonDoc = QJsonDocument::fromJson(responBody.toUtf8());
                         if(responseJsonDoc.isObject()) {
                             QJsonObject responseJsonObj = responseJsonDoc.object();
@@ -701,7 +723,7 @@ void AppMain::handleRequest()
                                 bool mz = cloneInfo.value("mz").toBool();
                                 bool cz = cloneInfo.value("cz").toBool();
                                 if(!(mz || cz)) {
-                                    LOGD << "Password and secretkey is encrypted by db";
+                                    // Decode password && secretkey from DB
                                     QString password = cloneInfo.value("password").toString();
                                     QString secretkey = cloneInfo.value("secretkey").toString();
                                     QString key = QEncryption::md5(token).toLower();
@@ -710,6 +732,9 @@ void AppMain::handleRequest()
                                     QEncryption::decrypt(secretkey,secretkey,key,iv,"Hex");
                                     cloneInfo["password"] = password;
                                     cloneInfo["secretkey"] = secretkey;
+                                } else if(cz) {
+                                    // Decode password && secretkey from CGI
+                                    decryptCloneInfo(cloneInfo,token);
                                 }
                             }
                             rawData = QString(QJsonDocument(cloneInfo).toJson());
@@ -722,6 +747,8 @@ void AppMain::handleRequest()
                     } else {
                         mainObject["data"] = responBody;
                     }
+
+
                     mainObject["cgi_message"] = errorMsg;
                     mainObject["response_code"] = responseCode;
                     mainObject["success"] = responseCode == 0;
@@ -802,6 +829,52 @@ QString AppMain::decryptTimestamp(QString& timestamp, QString& token) {
     QString decTimestamp;
     QEncryption::decrypt(timestamp,decTimestamp, keyFromToken,ivFromToken);
     return decTimestamp;
+}
+
+void AppMain::encryptCloneInfo(QJsonObject &cloneInfo, QString token)
+{
+    // Decode password && secretkey from CGI
+    if(token.isEmpty()) {
+        LOGD << "token is empty";
+        return;
+    }
+
+    if(cloneInfo.contains("uid")) {
+        QString uid = cloneInfo.value("uid").toString();
+        QString password = cloneInfo.value("password").toString();
+        QString secretkey = cloneInfo.value("secretkey").toString();
+        QString key = QEncryption::md5(token + uid).toLower();
+        QString iv = "Pdt1794@Pdt1794@";
+        QEncryption::encrypt(password,password,key,iv,"Hex");
+        QEncryption::encrypt(secretkey,secretkey,key,iv,"Hex");
+        cloneInfo["password"] = password;
+        cloneInfo["secretkey"] = secretkey;
+        cloneInfo["cz"] = true;
+        LOGD << "key: " << key << " --iv:" << iv << " -- cloneInfo: " << cloneInfo;
+    }
+}
+
+void AppMain::decryptCloneInfo(QJsonObject &cloneInfo, QString token)
+{
+    // Decode password && secretkey from CGI
+    if(token.isEmpty()) {
+        LOGD << "token is empty";
+        return;
+    }
+
+    if(cloneInfo.contains("uid")) {
+        QString uid = cloneInfo.value("uid").toString();
+        QString password = cloneInfo.value("password").toString();
+        QString secretkey = cloneInfo.value("secretkey").toString();
+        QString key = QEncryption::md5(token + uid).toLower();
+        QString iv = "Pdt1794@Pdt1794@";
+        QEncryption::decrypt(password,password,key,iv,"Hex");
+        QEncryption::decrypt(secretkey,secretkey,key,iv,"Hex");
+        cloneInfo["password"] = password;
+        cloneInfo["secretkey"] = secretkey;
+        cloneInfo["cz"] = false;
+        LOGD << "key: " << key << " --iv:" << iv << " -- cloneInfo: " << cloneInfo;
+    }
 }
 
 QString AppMain::getKeyFromTimestamp(const QString& timeStamp) {
