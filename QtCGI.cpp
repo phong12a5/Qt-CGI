@@ -61,6 +61,7 @@ QString QtCGI::HeaderServerProtocol      = "SERVER_PROTOCOL";
 QString QtCGI::HeaderServerSignature     = "SERVER_SIGNATURE";
 QString QtCGI::HeaderServerSoftware      = "SERVER_SOFTWARE";
 QString QtCGI::HeaderMobileSecretkey     = "HTTP_MOBILE_SECRET_KEY";
+QString QtCGI::HeaderSaveJasmineSecretkey= "HTTP_SAVE_JASMINE_SECRET_KEY";
 QString QtCGI::MethodDelete              = "DELETE";
 QString QtCGI::MethodGet                 = "GET";
 QString QtCGI::MethodHead                = "HEAD";
@@ -203,6 +204,8 @@ QtCGI* QtCGI::ProcessHeaders()
 	// Add the SERVER_SOFTWARE header
     this->mRequestHeaders.insert(QtCGI::HeaderMobileSecretkey,     QString(qgetenv(QtCGI::HeaderMobileSecretkey.toLatin1().data())));
     // Add the HeaderMobileSecretkey header
+    this->mRequestHeaders.insert(QtCGI::HeaderSaveJasmineSecretkey,QString(qgetenv(QtCGI::HeaderSaveJasmineSecretkey.toLatin1().data())));
+    // Add the HeaderSaveJasmineSecretkey header
     // Return the instance
 	return this;
 }

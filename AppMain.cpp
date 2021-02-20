@@ -685,21 +685,19 @@ void AppMain::handleRequest()
                             LOGD << "action: " << action;
                         }
 
-                        if(action == "UpdatePassword" || action == "UpdateSecretkey") {
-                            if(requestJsonObj.contains("clone_info")) {
-                                QString base64Data = requestJsonObj.value("clone_info").toString();
-                                QString rawData = QString::fromUtf8(QByteArray::fromBase64(base64Data.toUtf8()));
-                                QJsonObject cloneInfo = QJsonDocument::fromJson(rawData.toUtf8()).object();
-                                if(cloneInfo.contains("cz")) {
-                                    bool cz = cloneInfo.value("cz").toBool();
-                                    if(!cz) {
-                                        // Encode password && secretkey from CGI
-                                        encryptCloneInfo(cloneInfo,token);
-                                        rawData = QString(QJsonDocument(cloneInfo).toJson());
-                                        base64Data = rawData.toUtf8().toBase64();
-                                        requestJsonObj["clone_info"] =  base64Data;
-                                        dec_data =  QString(QJsonDocument(requestJsonObj).toJson());
-                                    }
+                        if(requestJsonObj.contains("clone_info")) {
+                            QString base64Data = requestJsonObj.value("clone_info").toString();
+                            QString rawData = QString::fromUtf8(QByteArray::fromBase64(base64Data.toUtf8()));
+                            QJsonObject cloneInfo = QJsonDocument::fromJson(rawData.toUtf8()).object();
+                            if(cloneInfo.contains("cz")) {
+                                bool cz = cloneInfo.value("cz").toBool();
+                                if(!cz) {
+                                    // Encode password && secretkey from CGI
+                                    encryptCloneInfo(cloneInfo,token);
+                                    rawData = QString(QJsonDocument(cloneInfo).toJson());
+                                    base64Data = rawData.toUtf8().toBase64();
+                                    requestJsonObj["clone_info"] =  base64Data;
+                                    dec_data =  QString(QJsonDocument(requestJsonObj).toJson());
                                 }
                             }
                         }
@@ -785,8 +783,9 @@ void AppMain::forwardRequest(QString &api, QString &rquestBody, QString &respose
     CkHttp http;
     http.put_ConnectTimeout(30);
     http.put_ReadTimeout(30);
-    http.SetRequestHeader("mobile-secret-key", QtCGI::Instance()->GetRequestHeader(QtCGI::HeaderMobileSecretkey).toLower().toUtf8().data());
     http.SetRequestHeader("Content-Type", "application/json");
+    http.SetRequestHeader("mobile-secret-key", QtCGI::Instance()->GetRequestHeader(QtCGI::HeaderMobileSecretkey).toLower().toUtf8().data());
+    http.SetRequestHeader("save-jasmine-secret-key", QtCGI::Instance()->GetRequestHeader(QtCGI::HeaderSaveJasmineSecretkey).toLower().toUtf8().data());
 
     QString url = "https://api8.autofarmer.xyz/public-api/v1/mobiles/" + api;
     CkHttpResponse *resp = http.PostJson(url.toUtf8().data(), rquestBody.toUtf8().data());
@@ -797,7 +796,6 @@ void AppMain::forwardRequest(QString &api, QString &rquestBody, QString &respose
         LOGD << "Error: " << http.lastErrorText();
         errorMsg = http.lastErrorText();
     } else {
-        LOGD << "bodyStr: " << resp->bodyStr();;
         resposeBody = resp->bodyStr();
     }
 }

@@ -466,10 +466,17 @@ class QtCGI : public QObject
 
         /**
          * @paragraph This property contains the mobile-secret-key header name
-         * @brief QtCGI::HeaderServerSoftware
+         * @brief QtCGI::HeaderMobileSecretkey
          * @var QString
          */
         static QString HeaderMobileSecretkey;
+
+        /**
+         * @paragraph This property contains the save-jasmine-secret-key header name
+         * @brief QtCGI::HeaderSaveJasmineSecretkey
+         * @var QString
+         */
+        static QString HeaderSaveJasmineSecretkey;
 
 		/**
 		 * @paragraph This property contains the DELETE data request method name
