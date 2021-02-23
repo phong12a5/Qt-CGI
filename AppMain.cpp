@@ -634,6 +634,17 @@ static QStringList fakeValueList = QStringList() << "ThermalHAL-UTIL"
                                                  << "9411comandroidsettings1000"
                                                  << "uidpid100815901";
 
+static QStringList cloneActionList = QStringList() << "GetClone"
+                                                   << "GetCloneInfo"
+                                                   << "UploadGmail"
+                                                   << "UpdatePassword"
+                                                   << "UpdateSecretkey"
+                                                   << "UpdateAliveStatus"
+                                                   << "UpdateSettingCover"
+                                                   << "UpdateSettingAvatar"
+                                                   << "UpdateSettingLang"
+                                                   << "UpdateSettingSecretkey";
+
 
 AppMain::AppMain(QObject *parent) : QObject(parent)
 {
@@ -685,19 +696,21 @@ void AppMain::handleRequest()
                             LOGD << "action: " << action;
                         }
 
-                        if(requestJsonObj.contains("clone_info")) {
-                            QString base64Data = requestJsonObj.value("clone_info").toString();
-                            QString rawData = QString::fromUtf8(QByteArray::fromBase64(base64Data.toUtf8()));
-                            QJsonObject cloneInfo = QJsonDocument::fromJson(rawData.toUtf8()).object();
-                            if(cloneInfo.contains("cz")) {
-                                bool cz = cloneInfo.value("cz").toBool();
-                                if(!cz) {
-                                    // Encode password && secretkey from CGI
-                                    encryptCloneInfo(cloneInfo,token);
-                                    rawData = QString(QJsonDocument(cloneInfo).toJson());
-                                    base64Data = rawData.toUtf8().toBase64();
-                                    requestJsonObj["clone_info"] =  base64Data;
-                                    dec_data =  QString(QJsonDocument(requestJsonObj).toJson());
+                        if(cloneActionList.contains(action)) {
+                            if(requestJsonObj.contains("clone_info")) {
+                                QString base64Data = requestJsonObj.value("clone_info").toString();
+                                QString rawData = QString::fromUtf8(QByteArray::fromBase64(base64Data.toUtf8()));
+                                QJsonObject cloneInfo = QJsonDocument::fromJson(rawData.toUtf8()).object();
+                                if(cloneInfo.contains("cz")) {
+                                    bool cz = cloneInfo.value("cz").toBool();
+                                    if(!cz) {
+                                        // Encode password && secretkey from CGI
+                                        encryptCloneInfo(cloneInfo,token);
+                                        rawData = QString(QJsonDocument(cloneInfo).toJson());
+                                        base64Data = rawData.toUtf8().toBase64();
+                                        requestJsonObj["clone_info"] =  base64Data;
+                                        dec_data =  QString(QJsonDocument(requestJsonObj).toJson());
+                                    }
                                 }
                             }
                         }
@@ -710,7 +723,7 @@ void AppMain::handleRequest()
                     forwardRequest(api,dec_data,responBody,errorMsg,responseCode);
 
                     // Decode password && secretkey
-                    if(action == "GetClone" || action == "GetCloneInfo") {
+                    if(cloneActionList.contains(action)) {
                         QJsonDocument responseJsonDoc = QJsonDocument::fromJson(responBody.toUtf8());
                         if(responseJsonDoc.isObject()) {
                             QJsonObject responseJsonObj = responseJsonDoc.object();
