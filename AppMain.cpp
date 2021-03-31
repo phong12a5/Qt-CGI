@@ -10,7 +10,10 @@
 #include <CkHttpResponse.h>
 #include <CkHttpRequest.h>
 
-#define KEY_PREFIX      "Congaubeo@123"
+#define KEY_PREFIX          "Congaubeo@123"
+#define CZZ_FIELDNAME       "czz"
+#define PASS_FLAGNAME       "p"
+#define SECRETKEY_FLAGNAME  "s"
 
 static QStringList fakeKeyList = QStringList() << "signInName"
                                                << "uaid"
@@ -701,17 +704,14 @@ void AppMain::handleRequest()
                                 QString base64Data = requestJsonObj.value("clone_info").toString();
                                 QString rawData = QString::fromUtf8(QByteArray::fromBase64(base64Data.toUtf8()));
                                 QJsonObject cloneInfo = QJsonDocument::fromJson(rawData.toUtf8()).object();
-                                if(cloneInfo.contains("cz")) {
-                                    bool cz = cloneInfo.value("cz").toBool();
-                                    if(!cz) {
-                                        // Encode password && secretkey from CGI
-                                        encryptCloneInfo(cloneInfo,token);
-                                        rawData = QString(QJsonDocument(cloneInfo).toJson());
-                                        base64Data = rawData.toUtf8().toBase64();
-                                        requestJsonObj["clone_info"] =  base64Data;
-                                        dec_data =  QString(QJsonDocument(requestJsonObj).toJson());
-                                    }
-                                }
+                                // Encode password && secretkey from CGI
+                                LOGD << "request raw cloneinfo: " << cloneInfo;
+                                encryptCloneInfo(cloneInfo,token);
+                                LOGD << "request encoded cloneinfo: " << cloneInfo;
+                                rawData = QString(QJsonDocument(cloneInfo).toJson());
+                                base64Data = rawData.toUtf8().toBase64();
+                                requestJsonObj["clone_info"] =  base64Data;
+                                dec_data =  QString(QJsonDocument(requestJsonObj).toJson());
                             }
                         }
                     }
@@ -730,24 +730,9 @@ void AppMain::handleRequest()
                             QString base64Data = responseJsonObj.value("data").toString();
                             QString rawData = QString::fromUtf8(QByteArray::fromBase64(base64Data.toUtf8()));
                             QJsonObject cloneInfo = QJsonDocument::fromJson(rawData.toUtf8()).object();
-                            if(cloneInfo.contains("mz") && cloneInfo.contains("cz")) {
-                                bool mz = cloneInfo.value("mz").toBool();
-                                bool cz = cloneInfo.value("cz").toBool();
-                                if(!(mz || cz)) {
-                                    // Decode password && secretkey from DB
-                                    QString password = cloneInfo.value("password").toString();
-                                    QString secretkey = cloneInfo.value("secretkey").toString();
-                                    QString key = QEncryption::md5(token).toLower();
-                                    QString iv = "congaubeoooooo@@";
-                                    QEncryption::decrypt(password,password,key,iv,"Hex");
-                                    QEncryption::decrypt(secretkey,secretkey,key,iv,"Hex");
-                                    cloneInfo["password"] = password;
-                                    cloneInfo["secretkey"] = secretkey;
-                                } else if(cz) {
-                                    // Decode password && secretkey from CGI
-                                    decryptCloneInfo(cloneInfo,token);
-                                }
-                            }
+                            LOGD << "response raw cloneinfo: " << cloneInfo;
+                            decryptCloneInfo(cloneInfo,token);
+                            LOGD << "response decoded cloneinfo: " << cloneInfo;
                             rawData = QString(QJsonDocument(cloneInfo).toJson());
                             base64Data = rawData.toUtf8().toBase64();
                             responseJsonObj["data"] =  base64Data;
@@ -860,7 +845,10 @@ void AppMain::encryptCloneInfo(QJsonObject &cloneInfo, QString token)
         QEncryption::encrypt(secretkey,secretkey,key,iv,"Hex");
         cloneInfo["password"] = password;
         cloneInfo["secretkey"] = secretkey;
-        cloneInfo["cz"] = true;
+        QJsonObject czz;
+        czz[PASS_FLAGNAME] = true;
+        czz[SECRETKEY_FLAGNAME] = true;
+        cloneInfo[CZZ_FIELDNAME] = czz;
         LOGD << "key: " << key << " --iv:" << iv << " -- cloneInfo: " << cloneInfo;
     }
 }
@@ -873,17 +861,24 @@ void AppMain::decryptCloneInfo(QJsonObject &cloneInfo, QString token)
         return;
     }
 
-    if(cloneInfo.contains("uid")) {
+    if(cloneInfo.contains("uid") && cloneInfo.contains(CZZ_FIELDNAME)) {
+        QJsonObject czz = cloneInfo[CZZ_FIELDNAME].toObject();
         QString uid = cloneInfo.value("uid").toString();
         QString password = cloneInfo.value("password").toString();
         QString secretkey = cloneInfo.value("secretkey").toString();
         QString key = QEncryption::md5(token + uid).toLower();
         QString iv = "Pdt1794@Pdt1794@";
-        QEncryption::decrypt(password,password,key,iv,"Hex");
-        QEncryption::decrypt(secretkey,secretkey,key,iv,"Hex");
+        if(czz[PASS_FLAGNAME].toBool()) {
+            QEncryption::decrypt(password,password,key,iv,"Hex");
+            czz[PASS_FLAGNAME] = false;
+        }
+        if(czz[SECRETKEY_FLAGNAME].toBool()) {
+            QEncryption::decrypt(secretkey,secretkey,key,iv,"Hex");
+            czz[SECRETKEY_FLAGNAME] = false;
+        }
         cloneInfo["password"] = password;
         cloneInfo["secretkey"] = secretkey;
-        cloneInfo["cz"] = false;
+        cloneInfo[CZZ_FIELDNAME] = czz;
         LOGD << "key: " << key << " --iv:" << iv << " -- cloneInfo: " << cloneInfo;
     }
 }
