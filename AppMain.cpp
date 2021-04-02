@@ -12,6 +12,7 @@
 
 #define KEY_PREFIX          "Congaubeo@123"
 #define CZZ_FIELDNAME       "czz"
+#define MZZ_FIELDNAME       "mzz"
 #define PASS_FLAGNAME       "p"
 #define SECRETKEY_FLAGNAME  "s"
 
@@ -861,8 +862,9 @@ void AppMain::decryptCloneInfo(QJsonObject &cloneInfo, QString token)
         return;
     }
 
-    if(cloneInfo.contains("uid") && cloneInfo.contains(CZZ_FIELDNAME)) {
+    if(cloneInfo.contains("uid")) {
         QJsonObject czz = cloneInfo[CZZ_FIELDNAME].toObject();
+        QJsonObject mzz = cloneInfo[MZZ_FIELDNAME].toObject();
         QString uid = cloneInfo.value("uid").toString();
         QString password = cloneInfo.value("password").toString();
         QString secretkey = cloneInfo.value("secretkey").toString();
@@ -871,6 +873,8 @@ void AppMain::decryptCloneInfo(QJsonObject &cloneInfo, QString token)
         if(czz[PASS_FLAGNAME].toBool()) {
             QEncryption::decrypt(password,password,key,iv,"Hex");
             czz[PASS_FLAGNAME] = false;
+        } else if(!czz[PASS_FLAGNAME].toBool() && !mzz[PASS_FLAGNAME].toBool()) {
+            password = QString::fromUtf8(QByteArray::fromBase64(password.toUtf8()));
         }
         if(czz[SECRETKEY_FLAGNAME].toBool()) {
             QEncryption::decrypt(secretkey,secretkey,key,iv,"Hex");

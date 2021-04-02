@@ -1,6 +1,6 @@
 QT       += core network sql
 QT       -= gui
-TARGET    = autofarmer_test.api
+TARGET    = autofarmer.api
 CONFIG   += console
 CONFIG   -= app_bundle
 TEMPLATE  = app
@@ -19,3 +19,12 @@ HEADERS += \
 INCLUDEPATH += $$PWD/include/chilkat
 LIBS += -L$$PWD/libs/ -lchilkat-9.5.0
 
+
+CONFIG(release, debug|release) {
+    DEFINES += QT_NO_DEBUG_OUTPUT
+    message(Release)
+}
+
+CONFIG(debug, debug|release) {
+    message(Debug)
+}
