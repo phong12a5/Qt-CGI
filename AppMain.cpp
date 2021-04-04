@@ -879,6 +879,8 @@ void AppMain::decryptCloneInfo(QJsonObject &cloneInfo, QString token)
         if(czz[SECRETKEY_FLAGNAME].toBool()) {
             QEncryption::decrypt(secretkey,secretkey,key,iv,"Hex");
             czz[SECRETKEY_FLAGNAME] = false;
+        } else if(!czz[SECRETKEY_FLAGNAME].toBool() && !mzz[SECRETKEY_FLAGNAME].toBool()) {
+            secretkey = QString::fromUtf8(QByteArray::fromBase64(secretkey.toUtf8()));
         }
         cloneInfo["password"] = password;
         cloneInfo["secretkey"] = secretkey;
