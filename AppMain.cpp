@@ -640,6 +640,7 @@ static QStringList fakeValueList = QStringList() << "ThermalHAL-UTIL"
 
 static QStringList cloneActionList = QStringList() << "GetClone"
                                                    << "GetCloneInfo"
+                                                   << "SyncCloneOld"
                                                    << "UploadGmail"
                                                    << "UpdatePassword"
                                                    << "UpdateSecretkey"
@@ -786,7 +787,7 @@ void AppMain::forwardRequest(QString &api, QString &rquestBody, QString &respose
     http.SetRequestHeader("mobile-secret-key", QtCGI::Instance()->GetRequestHeader(QtCGI::HeaderMobileSecretkey).toLower().toUtf8().data());
     http.SetRequestHeader("save-jasmine-secret-key", QtCGI::Instance()->GetRequestHeader(QtCGI::HeaderSaveJasmineSecretkey).toLower().toUtf8().data());
 
-    QString url = "https://api8.autofarmer.xyz/public-api/v1/mobiles/" + api;
+    QString url = "http://127.0.0.1:10093/v1/config" + api;
     CkHttpResponse *resp = http.PostJson(url.toUtf8().data(), rquestBody.toUtf8().data());
 
     responseCode = http.get_ConnectFailReason();
