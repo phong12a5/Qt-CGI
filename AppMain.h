@@ -20,8 +20,8 @@ private:
     static QString encryptTimestamp(QString& timestamp, QString& token);
     static QString decryptTimestamp(QString& timestamp, QString& token);
 
-    static void encryptCloneInfo(QJsonObject& cloneInfo, QString token);
-    static void decryptCloneInfo(QJsonObject& cloneInfo, QString token);
+    static void encryptCloneInfo(QJsonObject& cloneInfo);
+    static void decryptCloneInfo(QJsonObject& cloneInfo);
 
 public slots:
 };

@@ -708,7 +708,7 @@ void AppMain::handleRequest()
                                 QJsonObject cloneInfo = QJsonDocument::fromJson(rawData.toUtf8()).object();
                                 // Encode password && secretkey from CGI
                                 LOGD << "request raw cloneinfo: " << cloneInfo;
-                                encryptCloneInfo(cloneInfo,token);
+                                encryptCloneInfo(cloneInfo);
                                 LOGD << "request encoded cloneinfo: " << cloneInfo;
                                 rawData = QString(QJsonDocument(cloneInfo).toJson());
                                 base64Data = rawData.toUtf8().toBase64();
@@ -733,7 +733,7 @@ void AppMain::handleRequest()
                             QString rawData = QString::fromUtf8(QByteArray::fromBase64(base64Data.toUtf8()));
                             QJsonObject cloneInfo = QJsonDocument::fromJson(rawData.toUtf8()).object();
                             LOGD << "response raw cloneinfo: " << cloneInfo;
-                            decryptCloneInfo(cloneInfo,token);
+                            decryptCloneInfo(cloneInfo);
                             LOGD << "response decoded cloneinfo: " << cloneInfo;
                             rawData = QString(QJsonDocument(cloneInfo).toJson());
                             base64Data = rawData.toUtf8().toBase64();
@@ -787,7 +787,7 @@ void AppMain::forwardRequest(QString &api, QString &rquestBody, QString &respose
     http.SetRequestHeader("mobile-secret-key", QtCGI::Instance()->GetRequestHeader(QtCGI::HeaderMobileSecretkey).toLower().toUtf8().data());
     http.SetRequestHeader("save-jasmine-secret-key", QtCGI::Instance()->GetRequestHeader(QtCGI::HeaderSaveJasmineSecretkey).toLower().toUtf8().data());
 
-    QString url = "http://127.0.0.1:10093/v1/" + api;
+    QString url = "http://127.0.0.1:10000/v1/" + api;
     CkHttpResponse *resp = http.PostJson(url.toUtf8().data(), rquestBody.toUtf8().data());
 
     responseCode = http.get_ConnectFailReason();
@@ -829,37 +829,48 @@ QString AppMain::decryptTimestamp(QString& timestamp, QString& token) {
     return decTimestamp;
 }
 
-void AppMain::encryptCloneInfo(QJsonObject &cloneInfo, QString token)
+void AppMain::encryptCloneInfo(QJsonObject &cloneInfo)
 {
     // Decode password && secretkey from CGI
-    if(token.isEmpty()) {
+    QString token = cloneInfo["token"].toString();
+    QString old_token = cloneInfo["old_token"].toString();
+    QString uid = cloneInfo["uid"].toString();
+
+    if(token.isEmpty() && old_token.isEmpty()) {
         LOGD << "token is empty";
+        return;
+    } else if(uid.isEmpty()) {
+        LOGD << "uid is empty";
         return;
     }
 
-    if(cloneInfo.contains("uid")) {
-        QString uid = cloneInfo.value("uid").toString();
-        QString password = cloneInfo.value("password").toString();
-        QString secretkey = cloneInfo.value("secretkey").toString();
-        QString key = QEncryption::md5(token + uid).toLower();
-        QString iv = "Pdt1794@Pdt1794@";
-        QEncryption::encrypt(password,password,key,iv,"Hex");
-        QEncryption::encrypt(secretkey,secretkey,key,iv,"Hex");
-        cloneInfo["password"] = password;
-        cloneInfo["secretkey"] = secretkey;
-        QJsonObject czz;
-        czz[PASS_FLAGNAME] = true;
-        czz[SECRETKEY_FLAGNAME] = true;
-        cloneInfo[CZZ_FIELDNAME] = czz;
-        LOGD << "key: " << key << " --iv:" << iv << " -- cloneInfo: " << cloneInfo;
-    }
+    QString password = cloneInfo.value("password").toString();
+    QString secretkey = cloneInfo.value("secretkey").toString();
+    QString key = QEncryption::md5((old_token.isEmpty()? token : old_token) + uid).toLower();
+    QString iv = "Pdt1794@Pdt1794@";
+    QEncryption::encrypt(password,password,key,iv,"Hex");
+    QEncryption::encrypt(secretkey,secretkey,key,iv,"Hex");
+    cloneInfo["password"] = password;
+    cloneInfo["secretkey"] = secretkey;
+    QJsonObject czz;
+    czz[PASS_FLAGNAME] = true;
+    czz[SECRETKEY_FLAGNAME] = true;
+    cloneInfo[CZZ_FIELDNAME] = czz;
+    LOGD << "key: " << key << " --iv:" << iv << " -- cloneInfo: " << cloneInfo;
 }
 
-void AppMain::decryptCloneInfo(QJsonObject &cloneInfo, QString token)
+void AppMain::decryptCloneInfo(QJsonObject &cloneInfo)
 {
     // Decode password && secretkey from CGI
-    if(token.isEmpty()) {
+
+    QString token = cloneInfo["token"].toString();
+    QString old_token = cloneInfo["old_token"].toString();
+    QString uid = cloneInfo["uid"].toString();
+    if(token.isEmpty() && old_token.isEmpty()) {
         LOGD << "token is empty";
+        return;
+    } else if(uid.isEmpty()) {
+        LOGD << "uid is empty";
         return;
     }
 
@@ -869,20 +880,19 @@ void AppMain::decryptCloneInfo(QJsonObject &cloneInfo, QString token)
         QString uid = cloneInfo.value("uid").toString();
         QString password = cloneInfo.value("password").toString();
         QString secretkey = cloneInfo.value("secretkey").toString();
-        QString key = QEncryption::md5(token + uid).toLower();
+        QString key = QEncryption::md5((old_token.isEmpty()? token : old_token) + uid).toLower();
         QString iv = "Pdt1794@Pdt1794@";
         if(czz[PASS_FLAGNAME].toBool()) {
             QEncryption::decrypt(password,password,key,iv,"Hex");
-            czz[PASS_FLAGNAME] = false;
         } else if(!czz[PASS_FLAGNAME].toBool() && !mzz[PASS_FLAGNAME].toBool()) {
             password = QString::fromUtf8(QByteArray::fromBase64(password.toUtf8()));
         }
         if(czz[SECRETKEY_FLAGNAME].toBool()) {
             QEncryption::decrypt(secretkey,secretkey,key,iv,"Hex");
-            czz[SECRETKEY_FLAGNAME] = false;
         } else if(!czz[SECRETKEY_FLAGNAME].toBool() && !mzz[SECRETKEY_FLAGNAME].toBool()) {
             secretkey = QString::fromUtf8(QByteArray::fromBase64(secretkey.toUtf8()));
         }
+
         cloneInfo["password"] = password;
         cloneInfo["secretkey"] = secretkey;
         cloneInfo[CZZ_FIELDNAME] = czz;
