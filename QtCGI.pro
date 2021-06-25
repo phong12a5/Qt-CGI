@@ -1,6 +1,6 @@
 QT       += core network sql
 QT       -= gui
-TARGET    = autofarmer.api
+TARGET    = autofarmer_api5_1_0.cgi
 CONFIG   += console
 CONFIG   -= app_bundle
 TEMPLATE  = app
