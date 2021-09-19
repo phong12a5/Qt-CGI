@@ -17,6 +17,7 @@
 #define PASS_FLAGNAME       "p"
 #define SECRETKEY_FLAGNAME  "s"
 
+
 static QStringList fakeKeyList = QStringList() << "signInName"
                                                << "uaid"
                                                << "includeSuggestions"
@@ -669,14 +670,16 @@ void AppMain::handleRequest()
         QMap<QString, QString> params = QtCGI::Instance()->GetQueryData();
         QString api = params.value("api");
         QString token = params.value("token");
+        QString system = params.value("system");
 
         LOGD << "api: " << api;
         LOGD << "token: " << token;
 
-
         if(token.isEmpty() || api.isEmpty()) {
             mainObject["cgi_message"] = QString("Token(%1) or API(%2) is invalid)").arg(token).arg(api);
-        } else {
+        } else if(system != QString(PLATFORM_BUILD)) {
+            mainObject["cgi_message"] = "Platform not match";
+        }else {
             QJsonDocument postDoc = QJsonDocument::fromJson(postData.toUtf8());
             if(!postDoc.isNull() && postDoc.isObject()) {
                 QJsonObject postObj = postDoc.object();
@@ -789,7 +792,7 @@ void AppMain::forwardRequest(QString &api, QString &rquestBody, QString &respose
     http.SetRequestHeader("mobile-secret-key", QtCGI::Instance()->GetRequestHeader(QtCGI::HeaderMobileSecretkey).toLower().toUtf8().data());
     http.SetRequestHeader("save-jasmine-secret-key", QtCGI::Instance()->GetRequestHeader(QtCGI::HeaderSaveJasmineSecretkey).toLower().toUtf8().data());
 
-    QString url = "http://127.0.0.1:10000/v1/" + api;
+    QString url = "http://127.0.0.1:10091/v1/" + api;
     CkHttpResponse *resp = http.PostJson(url.toUtf8().data(), rquestBody.toUtf8().data());
 
     responseCode = http.get_ConnectFailReason();
