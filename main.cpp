@@ -24,7 +24,7 @@ int main(int intArguments, char* charArguments[])
 }
 
 bool unlockChilkat() {
-    bool success_global = glob.UnlockBundle("VONGTH.CB4082020_9kru5rnD5R2h");
+    bool success_global = glob.UnlockBundle("AUTFRM.CB4082023_Pz2Ry7az86p4");
     if (success_global != true) {
         return false;
     }

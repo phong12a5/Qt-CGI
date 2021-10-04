@@ -1,7 +1,6 @@
-QT       += core network sql
+QT       += core
 QT       -= gui
-TARGET    = autofarmer_api5_1_0.cgi
-CONFIG   += console
+TARGET    = autofarmer_1_1.cgi
 CONFIG   -= app_bundle
 TEMPLATE  = app
 SOURCES  += main.cpp \
@@ -16,8 +15,8 @@ HEADERS += \
     AppMain.h
 
 
-INCLUDEPATH += $$PWD/include/chilkat
-LIBS += -L$$PWD/libs/ -lchilkat-9.5.0
+INCLUDEPATH += $$PWD/chilkat/include/
+LIBS += -L$$PWD/chilkat/lib/ -lchilkat-9.5.0
 
 
 CONFIG(release, debug|release) {
